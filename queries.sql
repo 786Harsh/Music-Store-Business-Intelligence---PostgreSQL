@@ -1,0 +1,770 @@
+-- ============================================================
+-- Q1 - Explore Database Tables
+--
+-- Business Question:
+-- What tables are available in the Chinook database?
+--
+-- Purpose:
+-- Lists the public tables so the database structure can be reviewed before analysis.
+-- ============================================================
+SELECT table_name
+FROM information_schema.tables
+WHERE table_schema = 'public'
+ORDER BY table_name;
+
+-- ============================================================
+-- Q2 - Display the First 10 Customers
+--
+-- Business Question:
+-- Who are the customers in the store?
+--
+-- Purpose:
+-- Provides a quick sample of customer records and their contact locations.
+-- ============================================================
+SELECT customer_id, first_name, last_name, email, city, country
+FROM customer
+LIMIT 10;
+
+-- ============================================================
+-- Q3 - Find Customers from the USA
+--
+-- Business Question:
+-- Which customers are located in the USA?
+--
+-- Purpose:
+-- Identifies the store's USA-based customer segment.
+-- ============================================================
+SELECT customer_id, first_name, last_name, city, state, country
+FROM customer
+WHERE country = 'USA'
+ORDER BY last_name, first_name;
+
+-- ============================================================
+-- Q4 - Filter Customers by Country and Phone
+--
+-- Business Question:
+-- Which customers are from the USA and have a phone number recorded?
+--
+-- Purpose:
+-- Finds USA customers with available phone contact information.
+-- ============================================================
+SELECT customer_id, first_name, last_name, phone, country
+FROM customer
+WHERE country = 'USA'
+  AND phone IS NOT NULL
+ORDER BY last_name, first_name;
+
+-- ============================================================
+-- Q5 - Find Customers in Selected Countries
+--
+-- Business Question:
+-- Which customers are from the USA, Canada, or Brazil?
+--
+-- Purpose:
+-- Filters the customer base to three selected markets for comparison.
+-- ============================================================
+SELECT customer_id, first_name, last_name, country
+FROM customer
+WHERE country IN ('USA', 'Canada', 'Brazil')
+ORDER BY country, last_name, first_name;
+
+-- ============================================================
+-- Q6 - Find Tracks Above a Given Price
+--
+-- Business Question:
+-- Which tracks cost more than $1?
+--
+-- Purpose:
+-- Identifies higher-priced tracks in the catalog.
+-- ============================================================
+SELECT track_id, name AS track_name, unit_price
+FROM track
+WHERE unit_price > 1.00
+ORDER BY unit_price DESC;
+
+-- ============================================================
+-- Q7 - Find the Most Expensive Tracks
+--
+-- Business Question:
+-- What are the 10 most expensive tracks?
+--
+-- Purpose:
+-- Highlights the ten tracks with the highest listed prices.
+-- ============================================================
+SELECT track_id, name AS track_name, unit_price
+FROM track
+ORDER BY unit_price DESC
+LIMIT 10;
+
+-- ============================================================
+-- Q8 - Find Long Tracks
+--
+-- Business Question:
+-- Which tracks are longer than 10 minutes?
+--
+-- Purpose:
+-- Locates long-form tracks and reports their duration in minutes.
+-- ============================================================
+SELECT track_id, name AS track_name, milliseconds,
+	   ROUND(milliseconds / 60000.0, 2) AS duration_minutes
+FROM track
+WHERE milliseconds > 600000
+ORDER BY milliseconds DESC;
+
+-- ============================================================
+-- Q9 - Find Missing Company Information
+--
+-- Business Question:
+-- Which customers do not have a company recorded?
+--
+-- Purpose:
+-- Identifies customer records with incomplete company information.
+-- ============================================================
+SELECT customer_id, first_name, last_name, phone, company
+FROM customer
+WHERE company IS NULL;
+
+-- ============================================================
+-- Q10 - Count the Customers
+--
+-- Business Question:
+-- How many customers are in the database?
+--
+-- Purpose:
+-- Provides the total size of the customer base.
+-- ============================================================
+SELECT COUNT(*) AS total_customers
+FROM customer;
+
+-- ============================================================
+-- Q11 - Find the Minimum and Maximum Invoice
+--
+-- Business Question:
+-- What are the smallest and largest invoice values?
+--
+-- Purpose:
+-- Shows the range of transaction values in the store.
+-- ============================================================
+SELECT MIN(total) AS minimum_invoice, MAX(total) AS maximum_invoice
+FROM invoice;
+
+-- ============================================================
+-- Q12 - Calculate Total Revenue
+--
+-- Business Question:
+-- What is the total revenue generated by the store?
+--
+-- Purpose:
+-- Measures the store's total invoice revenue.
+-- ============================================================
+SELECT ROUND(SUM(total), 2) AS total_revenue
+FROM invoice;
+
+-- ============================================================
+-- Q13 - Calculate Average Invoice Value
+--
+-- Business Question:
+-- What is the average value of an invoice?
+--
+-- Purpose:
+-- Establishes the store's typical invoice value.
+-- ============================================================
+SELECT ROUND(AVG(total), 2) AS average_invoice_value
+FROM invoice;
+
+-- ============================================================
+-- Q14 - Count Customers by Country
+--
+-- Business Question:
+-- How many customers does the store have in each country?
+--
+-- Purpose:
+-- Shows the geographic distribution of customers.
+-- ============================================================
+SELECT country, COUNT(*) AS customer_count
+FROM customer
+GROUP BY country
+ORDER BY customer_count DESC, country;
+
+-- ============================================================
+-- Q15 - Calculate Sales by Country
+--
+-- Business Question:
+-- How much revenue does each billing country generate?
+--
+-- Purpose:
+-- Compares revenue performance across billing markets.
+-- ============================================================
+SELECT billing_country AS country, ROUND(SUM(total), 2) AS total_sales
+FROM invoice
+GROUP BY billing_country
+ORDER BY total_sales DESC;
+
+-- ============================================================
+-- Q16 - Find Customers with Repeat Purchases
+--
+-- Business Question:
+-- Which customers have more than one invoice?
+--
+-- Purpose:
+-- Identifies customers who have made repeat purchases.
+-- ============================================================
+SELECT customer_id, COUNT(invoice_id) AS invoice_count
+FROM invoice
+GROUP BY customer_id
+HAVING COUNT(invoice_id) > 1
+ORDER BY invoice_count DESC, customer_id;
+
+-- ============================================================
+-- Q17 - Find the Top-Selling Tracks
+--
+-- Business Question:
+-- Which tracks have sold the most units?
+--
+-- Purpose:
+-- Ranks the ten tracks with the strongest unit sales and revenue.
+-- ============================================================
+SELECT t.track_id, t.name AS track_name, SUM(il.quantity) AS units_sold,
+	   ROUND(SUM(il.unit_price * il.quantity), 2) AS revenue
+FROM track AS t
+INNER JOIN invoice_line AS il ON t.track_id = il.track_id
+GROUP BY t.track_id, t.name
+ORDER BY units_sold DESC, revenue DESC
+LIMIT 10;
+
+-- ============================================================
+-- Q18 - Find the Top-Selling Albums
+--
+-- Business Question:
+-- Which albums have sold the most units?
+--
+-- Purpose:
+-- Ranks albums by the units and revenue generated by their tracks.
+-- ============================================================
+SELECT a.album_id, a.title AS album_title, SUM(il.quantity) AS units_sold,
+	   ROUND(SUM(il.unit_price * il.quantity), 2) AS revenue
+FROM album AS a
+INNER JOIN track AS t ON a.album_id = t.album_id
+INNER JOIN invoice_line AS il ON t.track_id = il.track_id
+GROUP BY a.album_id, a.title
+ORDER BY units_sold DESC, revenue DESC
+LIMIT 10;
+
+-- ============================================================
+-- Q19 - Find the Highest-Spending Customers
+--
+-- Business Question:
+-- Which customers have spent the most money?
+--
+-- Purpose:
+-- Highlights the ten customers with the greatest total spend.
+-- ============================================================
+SELECT c.customer_id, c.first_name, c.last_name, c.country,
+	   ROUND(SUM(i.total), 2) AS total_spent
+FROM customer AS c
+INNER JOIN invoice AS i ON c.customer_id = i.customer_id
+GROUP BY c.customer_id, c.first_name, c.last_name, c.country
+ORDER BY total_spent DESC
+LIMIT 10;
+
+-- ============================================================
+-- Q20 - Find the Top-Selling Genres
+--
+-- Business Question:
+-- Which genres generate the most sales?
+--
+-- Purpose:
+-- Compares genre performance using units sold and revenue.
+-- ============================================================
+SELECT g.genre_id, g.name AS genre, SUM(il.quantity) AS units_sold,
+	   ROUND(SUM(il.unit_price * il.quantity), 2) AS revenue
+FROM genre AS g
+INNER JOIN track AS t ON g.genre_id = t.genre_id
+INNER JOIN invoice_line AS il ON t.track_id = il.track_id
+GROUP BY g.genre_id, g.name
+ORDER BY units_sold DESC, revenue DESC;
+
+-- ============================================================
+-- Q21 - Match Invoices to Customers
+--
+-- Business Question:
+-- Which customers have made purchases, and what are their invoice amounts?
+--
+-- Purpose:
+-- Connects each customer with their individual invoices.
+-- ============================================================
+SELECT c.customer_id, c.first_name, c.last_name, i.invoice_id,
+	   i.invoice_date, i.total
+FROM customer AS c
+INNER JOIN invoice AS i ON c.customer_id = i.customer_id
+ORDER BY c.customer_id, i.invoice_date;
+
+-- ============================================================
+-- Q22 - Match Customers to Purchased Tracks
+--
+-- Business Question:
+-- Which tracks were purchased by each customer?
+--
+-- Purpose:
+-- Connects customers, invoices, and purchased line items.
+-- ============================================================
+SELECT c.customer_id, c.first_name, c.last_name, i.invoice_id,
+	   il.track_id, il.quantity, il.unit_price
+FROM customer AS c
+INNER JOIN invoice AS i ON c.customer_id = i.customer_id
+INNER JOIN invoice_line AS il ON i.invoice_id = il.invoice_id
+ORDER BY c.customer_id, i.invoice_id, il.track_id;
+
+-- ============================================================
+-- Q23 - Match Tracks to Artists and Albums
+--
+-- Business Question:
+-- What artist and album are associated with each track?
+--
+-- Purpose:
+-- Builds the catalog hierarchy from artist and album to track.
+-- ============================================================
+SELECT t.track_id, t.name AS track_name, a.title AS album_title,
+	   ar.name AS artist_name
+FROM track AS t
+INNER JOIN album AS a ON t.album_id = a.album_id
+INNER JOIN artist AS ar ON a.artist_id = ar.artist_id
+ORDER BY ar.name, a.title, t.name;
+
+-- ============================================================
+-- Q24 - Measure Genre Sales
+--
+-- Business Question:
+-- How many units and how much revenue has each genre generated?
+--
+-- Purpose:
+-- Measures genre-level sales performance.
+-- ============================================================
+SELECT g.genre_id, g.name AS genre, SUM(il.quantity) AS units_sold,
+	   ROUND(SUM(il.unit_price * il.quantity), 2) AS revenue
+FROM genre AS g
+INNER JOIN track AS t ON g.genre_id = t.genre_id
+INNER JOIN invoice_line AS il ON t.track_id = il.track_id
+GROUP BY g.genre_id, g.name
+ORDER BY revenue DESC;
+
+-- ============================================================
+-- Q25 - Create a Detailed Customer Purchase History
+--
+-- Business Question:
+-- Which customer purchased which track, from which album, and from which artist?
+--
+-- Purpose:
+-- Provides a detailed customer purchase history with line revenue.
+-- ============================================================
+SELECT c.customer_id, c.first_name, c.last_name, i.invoice_id,
+	   i.invoice_date, t.track_id, t.name AS track_name,
+	   a.title AS album_title, ar.name AS artist_name, il.quantity,
+	   il.unit_price, ROUND(il.quantity * il.unit_price, 2) AS line_revenue
+FROM customer AS c
+INNER JOIN invoice AS i ON c.customer_id = i.customer_id
+INNER JOIN invoice_line AS il ON i.invoice_id = il.invoice_id
+INNER JOIN track AS t ON il.track_id = t.track_id
+INNER JOIN album AS a ON t.album_id = a.album_id
+INNER JOIN artist AS ar ON a.artist_id = ar.artist_id
+ORDER BY c.customer_id, i.invoice_date, t.name;
+
+-- ============================================================
+-- Q26 - Find Artists with No Albums
+--
+-- Business Question:
+-- Are there artists in the database who do not have any album?
+--
+-- Purpose:
+-- Identifies artists with no associated album records.
+-- ============================================================
+SELECT ar.artist_id, ar.name AS artist_name
+FROM artist AS ar
+LEFT JOIN album AS a ON ar.artist_id = a.artist_id
+WHERE a.album_id IS NULL
+ORDER BY ar.name;
+
+-- ============================================================
+-- Q27 - Find Albums with No Tracks
+--
+-- Business Question:
+-- Are there any albums in the catalog that do not contain tracks?
+--
+-- Purpose:
+-- Identifies albums with missing track associations.
+-- ============================================================
+SELECT a.album_id, a.title AS album_title
+FROM album AS a
+LEFT JOIN track AS t ON a.album_id = t.album_id
+WHERE t.track_id IS NULL
+ORDER BY a.title;
+
+-- ============================================================
+-- Q28 - Assign Customers to Employees
+--
+-- Business Question:
+-- Which customers are supported by each employee?
+--
+-- Purpose:
+-- Shows the customer assignments for every employee.
+-- ============================================================
+SELECT e.employee_id, e.first_name AS employee_first_name,
+	   e.last_name AS employee_last_name, c.customer_id,
+	   c.first_name AS customer_first_name, c.last_name AS customer_last_name
+FROM employee AS e
+LEFT JOIN customer AS c ON e.employee_id = c.support_rep_id
+ORDER BY e.employee_id, c.customer_id;
+
+-- ============================================================
+-- Q29 - Find Employees with No Customers
+--
+-- Business Question:
+-- Which support employees currently have no customers assigned to them?
+--
+-- Purpose:
+-- Identifies support representatives without current assignments.
+-- ============================================================
+SELECT e.employee_id, e.first_name, e.last_name, e.title
+FROM employee AS e
+LEFT JOIN customer AS c ON e.employee_id = c.support_rep_id
+WHERE c.customer_id IS NULL
+ORDER BY e.employee_id;
+
+-- ============================================================
+-- Q30 - Measure Revenue by Employee
+--
+-- Business Question:
+-- How much revenue is generated by customers assigned to each employee?
+--
+-- Purpose:
+-- Compares employee portfolios by customers, invoices, and revenue.
+-- ============================================================
+SELECT e.employee_id, e.first_name, e.last_name, e.title,
+	   COUNT(DISTINCT c.customer_id) AS customers_supported,
+	   COUNT(DISTINCT i.invoice_id) AS invoices_handled,
+	   ROUND(COALESCE(SUM(i.total), 0), 2) AS total_revenue
+FROM employee AS e
+LEFT JOIN customer AS c ON e.employee_id = c.support_rep_id
+LEFT JOIN invoice AS i ON c.customer_id = i.customer_id
+GROUP BY e.employee_id, e.first_name, e.last_name, e.title
+ORDER BY total_revenue DESC;
+
+-- ============================================================
+-- Q31 - Show the Employee Reporting Hierarchy
+--
+-- Business Question:
+-- Who does each employee report to?
+--
+-- Purpose:
+-- Displays each employee alongside their manager when one is recorded.
+-- ============================================================
+SELECT e.employee_id, e.first_name AS employee_first_name,
+	   e.last_name AS employee_last_name, e.title AS employee_title,
+	   m.employee_id AS manager_id, m.first_name AS manager_first_name,
+	   m.last_name AS manager_last_name, m.title AS manager_title
+FROM employee AS e
+LEFT JOIN employee AS m ON e.reports_to = m.employee_id
+ORDER BY e.employee_id;
+
+-- ============================================================
+-- Q32 - Preserve All Employee Records in a RIGHT JOIN
+--
+-- Business Question:
+-- Which employees are associated with customers, while preserving all employee records from the right side of the join?
+--
+-- Purpose:
+-- Shows customer assignments while retaining employees without assignments.
+-- ============================================================
+SELECT c.customer_id, c.first_name AS customer_first_name,
+	   c.last_name AS customer_last_name, e.employee_id,
+	   e.first_name AS employee_first_name, e.last_name AS employee_last_name
+FROM customer AS c
+RIGHT JOIN employee AS e ON c.support_rep_id = e.employee_id
+ORDER BY e.employee_id, c.customer_id;
+
+-- ============================================================
+-- Q33 - Compare Artists and Albums with a FULL OUTER JOIN
+--
+-- Business Question:
+-- Which artists and albums have relationships, and are there any artists or albums without a matching record?
+--
+-- Purpose:
+-- Reviews both matched and unmatched artist-album relationships.
+-- ============================================================
+SELECT ar.artist_id, ar.name AS artist_name, a.album_id,
+	   a.title AS album_title
+FROM artist AS ar
+FULL OUTER JOIN album AS a ON ar.artist_id = a.artist_id
+ORDER BY ar.artist_id, a.album_id;
+
+-- ============================================================
+-- Q34 - Create a Complete Customer Sales Report
+--
+-- Business Question:
+-- What did each customer purchase, when did they purchase it, and how much did the purchase contribute to revenue?
+--
+-- Purpose:
+-- Combines customer, invoice, and track details with line-level revenue.
+-- ============================================================
+SELECT c.customer_id, c.first_name, c.last_name, c.country,
+	   i.invoice_id, i.invoice_date, t.track_id, t.name AS track_name,
+	   il.quantity, il.unit_price,
+	   ROUND(il.quantity * il.unit_price, 2) AS line_revenue
+FROM customer AS c
+INNER JOIN invoice AS i ON c.customer_id = i.customer_id
+INNER JOIN invoice_line AS il ON i.invoice_id = il.invoice_id
+INNER JOIN track AS t ON il.track_id = t.track_id
+ORDER BY c.customer_id, i.invoice_date, t.name;
+
+-- ============================================================
+-- Q35 - Analyze Track Sales by Artist and Album
+--
+-- Business Question:
+-- Which artists and albums generate the most track-level sales revenue?
+--
+-- Purpose:
+-- Ranks the top 100 track-level sales results within the catalog hierarchy.
+-- ============================================================
+SELECT ar.artist_id, ar.name AS artist_name, a.album_id,
+	   a.title AS album_title, t.track_id, t.name AS track_name,
+	   SUM(il.quantity) AS units_sold,
+	   ROUND(SUM(il.quantity * il.unit_price), 2) AS revenue
+FROM artist AS ar
+INNER JOIN album AS a ON ar.artist_id = a.artist_id
+INNER JOIN track AS t ON a.album_id = t.album_id
+INNER JOIN invoice_line AS il ON t.track_id = il.track_id
+GROUP BY ar.artist_id, ar.name, a.album_id, a.title, t.track_id, t.name
+ORDER BY revenue DESC, units_sold DESC
+LIMIT 100;
+
+-- ============================================================
+-- Q36 - Produce a Monthly Sales Report
+--
+-- Business Question:
+-- How much revenue is generated each month, and how many invoices are created each month?
+--
+-- Purpose:
+-- Tracks monthly invoice volume, revenue, and average invoice value.
+-- ============================================================
+SELECT DATE_TRUNC('month', invoice_date) AS sales_month,
+	   COUNT(invoice_id) AS total_invoices,
+	   ROUND(SUM(total), 2) AS total_revenue,
+	   ROUND(AVG(total), 2) AS average_invoice_value
+FROM invoice
+GROUP BY DATE_TRUNC('month', invoice_date)
+ORDER BY sales_month;
+
+-- ============================================================
+-- Q37 - Produce a Yearly Sales Analysis
+--
+-- Business Question:
+-- How much revenue did the business generate in each year?
+--
+-- Purpose:
+-- Compares annual invoice volume, revenue, and average invoice value.
+-- ============================================================
+SELECT EXTRACT(YEAR FROM invoice_date) AS sales_year,
+	   COUNT(invoice_id) AS total_invoices,
+	   ROUND(SUM(total), 2) AS total_revenue,
+	   ROUND(AVG(total), 2) AS average_invoice_value
+FROM invoice
+GROUP BY EXTRACT(YEAR FROM invoice_date)
+ORDER BY sales_year;
+
+-- ============================================================
+-- Q38 - Find Countries Above a Revenue Threshold
+--
+-- Business Question:
+-- Which countries generated more than $50 in total revenue?
+--
+-- Purpose:
+-- Focuses market reporting on countries exceeding the revenue threshold.
+-- ============================================================
+SELECT billing_country, COUNT(invoice_id) AS total_invoices,
+	   ROUND(SUM(total), 2) AS total_revenue
+FROM invoice
+GROUP BY billing_country
+HAVING SUM(total) > 50
+ORDER BY total_revenue DESC;
+
+-- ============================================================
+-- Q39 - Find Invoices Above Average Invoice Value
+--
+-- Business Question:
+-- Which invoices have a value greater than the average invoice value across all invoices?
+--
+-- Purpose:
+-- Identifies transactions that are larger than the store-wide average.
+-- ============================================================
+SELECT invoice_id, customer_id, invoice_date, billing_country,
+	   ROUND(total, 2) AS invoice_total
+FROM invoice
+WHERE total > (SELECT AVG(total) FROM invoice)
+ORDER BY total DESC;
+
+-- ============================================================
+-- Q40 - Find Customers Spending Above Average
+--
+-- Business Question:
+-- Which customers have spent more than the average amount spent by customers?
+--
+-- Purpose:
+-- Identifies customers whose cumulative spending exceeds the customer average.
+-- ============================================================
+SELECT c.customer_id, c.first_name, c.last_name,
+	   ROUND(SUM(i.total), 2) AS total_spent
+FROM customer c
+JOIN invoice i ON c.customer_id = i.customer_id
+GROUP BY c.customer_id, c.first_name, c.last_name
+HAVING SUM(i.total) > (
+	SELECT AVG(customer_total)
+	FROM (
+		SELECT customer_id, SUM(total) AS customer_total
+		FROM invoice
+		GROUP BY customer_id
+	) AS customer_spending
+)
+ORDER BY total_spent DESC;
+
+-- ============================================================
+-- Q41 - Rank Tracks by Sales Within Each Genre
+--
+-- Business Question:
+-- Which tracks are the best-selling tracks within each genre?
+--
+-- Purpose:
+-- Assigns a sales rank to each track within its genre.
+-- ============================================================
+WITH track_sales AS (
+	SELECT g.genre_id, g.name AS genre_name, t.track_id,
+		   t.name AS track_name, SUM(il.quantity) AS units_sold,
+		   ROUND(SUM(il.quantity * il.unit_price), 2) AS revenue
+	FROM genre g
+	JOIN track t ON g.genre_id = t.genre_id
+	JOIN invoice_line il ON t.track_id = il.track_id
+	GROUP BY g.genre_id, g.name, t.track_id, t.name
+)
+SELECT genre_name, track_id, track_name, units_sold, revenue,
+	   RANK() OVER (PARTITION BY genre_id ORDER BY units_sold DESC) AS sales_rank
+FROM track_sales
+ORDER BY genre_name, sales_rank;
+
+-- ============================================================
+-- Q42 - Calculate a Running Total of Revenue
+--
+-- Business Question:
+-- How does total revenue accumulate month by month?
+--
+-- Purpose:
+-- Shows monthly revenue alongside the cumulative revenue total.
+-- ============================================================
+WITH monthly_sales AS (
+	SELECT DATE_TRUNC('month', invoice_date) AS sales_month,
+		   ROUND(SUM(total), 2) AS monthly_revenue
+	FROM invoice
+	GROUP BY DATE_TRUNC('month', invoice_date)
+)
+SELECT sales_month, monthly_revenue,
+	   ROUND(SUM(monthly_revenue) OVER (
+		   ORDER BY sales_month
+		   ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+	   ), 2) AS running_revenue
+FROM monthly_sales
+ORDER BY sales_month;
+
+-- ============================================================
+-- Q43 - Calculate a Three-Month Moving Average
+--
+-- Business Question:
+-- What is the average monthly revenue over the current month and the previous two months?
+--
+-- Purpose:
+-- Smooths monthly revenue results to show the recent sales trend.
+-- ============================================================
+WITH monthly_sales AS (
+	SELECT DATE_TRUNC('month', invoice_date) AS sales_month,
+		   ROUND(SUM(total), 2) AS monthly_revenue
+	FROM invoice
+	GROUP BY DATE_TRUNC('month', invoice_date)
+)
+SELECT sales_month, monthly_revenue,
+	   ROUND(AVG(monthly_revenue) OVER (
+		   ORDER BY sales_month
+		   ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+	   ), 2) AS three_month_moving_average
+FROM monthly_sales
+ORDER BY sales_month;
+
+-- ============================================================
+-- Q44 - Find the Top 3 Tracks in Each Genre
+--
+-- Business Question:
+-- What are the top 3 best-selling tracks in each genre?
+--
+-- Purpose:
+-- Returns the three highest-selling tracks for every genre.
+-- ============================================================
+WITH track_sales AS (
+	SELECT g.genre_id, g.name AS genre_name, t.track_id,
+		   t.name AS track_name, SUM(il.quantity) AS units_sold,
+		   ROUND(SUM(il.quantity * il.unit_price), 2) AS revenue
+	FROM genre g
+	JOIN track t ON g.genre_id = t.genre_id
+	JOIN invoice_line il ON t.track_id = il.track_id
+	GROUP BY g.genre_id, g.name, t.track_id, t.name
+), ranked_tracks AS (
+	SELECT genre_name, track_id, track_name, units_sold, revenue,
+		   ROW_NUMBER() OVER (
+			   PARTITION BY genre_id ORDER BY units_sold DESC, track_id
+		   ) AS track_rank
+	FROM track_sales
+)
+SELECT genre_name, track_id, track_name, units_sold, revenue, track_rank
+FROM ranked_tracks
+WHERE track_rank <= 3
+ORDER BY genre_name, track_rank;
+
+-- ============================================================
+-- Q45 - Build a Comprehensive Business Intelligence Dashboard
+--
+-- Business Question:
+-- What are the main sales and customer performance metrics for the Chinook store?
+--
+-- Purpose:
+-- Combines key store, customer, track, and genre metrics into one summary result.
+-- ============================================================
+WITH sales_summary AS (
+	SELECT COUNT(DISTINCT i.invoice_id) AS total_invoices,
+		   COUNT(DISTINCT i.customer_id) AS active_customers,
+		   ROUND(SUM(i.total), 2) AS total_revenue,
+		   ROUND(AVG(i.total), 2) AS average_invoice_value
+	FROM invoice i
+), track_summary AS (
+	SELECT SUM(il.quantity) AS total_units_sold,
+		   COUNT(DISTINCT il.track_id) AS different_tracks_sold
+	FROM invoice_line il
+), top_track AS (
+	SELECT t.name AS top_track_name, SUM(il.quantity) AS units_sold
+	FROM track t
+	JOIN invoice_line il ON t.track_id = il.track_id
+	GROUP BY t.track_id, t.name
+	ORDER BY units_sold DESC
+	LIMIT 1
+), top_genre AS (
+	SELECT g.name AS top_genre_name, SUM(il.quantity) AS units_sold
+	FROM genre g
+	JOIN track t ON g.genre_id = t.genre_id
+	JOIN invoice_line il ON t.track_id = il.track_id
+	GROUP BY g.genre_id, g.name
+	ORDER BY units_sold DESC
+	LIMIT 1
+)
+SELECT s.total_invoices, s.active_customers, s.total_revenue,
+	   s.average_invoice_value, ts.total_units_sold,
+	   ts.different_tracks_sold, tt.top_track_name,
+	   tt.units_sold AS top_track_units_sold, tg.top_genre_name,
+	   tg.units_sold AS top_genre_units_sold
+FROM sales_summary s
+CROSS JOIN track_summary ts
+CROSS JOIN top_track tt
+CROSS JOIN top_genre tg;
